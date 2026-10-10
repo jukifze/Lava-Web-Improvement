@@ -28,7 +28,7 @@ export function Input({
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
         className={cn(
-          'w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-ink-deep placeholder:text-slate-wet/60 transition-colors focus:outline-hidden focus:ring-2',
+          'w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-ink-deep placeholder:text-slate-wet/60 transition-colors focus:outline-none focus:ring-2',
           error
             ? 'border-danger focus:ring-danger/30'
             : 'border-brand-200 focus:border-brand-600 focus:ring-brand-600/20'

@@ -181,3 +181,14 @@ Contoh kelas utility yang jadi standar dipakai berulang:
 - Modal pakai focus-trap + `Esc` untuk close, `aria-modal="true"`.
 - Peta Leaflet (LocationPicker) sediakan input alamat teks sebagai alternatif bagi user yang tidak bisa berinteraksi presisi dengan peta (mis. screen reader / mobile kecil).
 - Tap target minimum 44×44px untuk item navbar mobile & sidebar admin di mode drawer.
+
+## 12. Screen tambahan — Lacak Pesanan & Before–After
+
+- `/lacak-pesanan` memakai PageHeader, kanvas brand-light, kartu putih/border brand-200, padding kartu 20–24px, gap 24–32px, dan lebar konten max-w-6xl. Desktop: form 340px di kiri, hasil fleksibel di kanan; mobile/tablet: satu kolom.
+- Headline publik memakai Baloo 2; form, kode pesanan, angka, timeline dan seluruh UI admin memakai Inter. Tidak ada palet atau font baru.
+- Form: kode pesanan + WhatsApp, satu CTA Lacak Pesanan, penjelasan privasi. Hasil: ringkasan, status, timeline vertikal, dokumentasi item, dan tautan kontak. Status terminal dibedakan secara tekstual, tidak hanya warna.
+- Sebelum pencarian tampil petunjuk; pencarian menampilkan loading; kredensial salah/layanan gagal menampilkan pesan error yang dapat dibaca screen reader. Perbarui menjaga data sebelumnya dengan timestamp jelas.
+- BeforeAfterCompare adalah komponen shared untuk grid galeri, detail, panel admin, dan hasil pelacakan. Mendukung drag horizontal, input range keyboard, mode berdampingan, label Sebelum/Sesudah, framing yang tersimpan, dan fallback gagal muat gambar.
+- Detail galeri mempertahankan navigasi kembali, nama layanan, foto utama, pilihan sudut, perbesar foto, dan dokumentasi terkait. Kode invoice/nama pelanggan bukan konten publik.
+- Modal memakai focus trap, Escape dan pemulihan fokus. Gerakan halaman mengikuti prefers-reduced-motion.
+- Navigasi desktop/menu mobile, footer, dan bottom-nav memberikan akses ke pelacakan; struk sukses menyediakan tautan langsung berisi kode saja (tanpa nomor telepon pada URL).

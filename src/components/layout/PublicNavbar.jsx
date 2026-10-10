@@ -25,7 +25,8 @@ export function PublicNavbar() {
     { label: 'Beranda', path: '/' },
     { label: 'Tentang Kami', path: '/tentang-kami' },
     { label: 'Layanan', path: '/layanan' },
-    { label: 'Galeri', path: '/galeri' },
+    { label: 'Before–After', path: '/galeri' },
+    { label: 'Lacak Pesanan', path: '/lacak-pesanan' },
     { label: 'Kontak', path: '/kontak' }
   ];
 
@@ -38,7 +39,7 @@ export function PublicNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-lg bg-white border border-brand-200 shadow-xs flex items-center justify-center p-1 group-hover:scale-105 transition-transform shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-white border border-brand-200 shadow-sm flex items-center justify-center p-1 group-hover:scale-105 transition-transform shrink-0">
               <img src="/logo.png" alt="Lave Streat Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
@@ -51,14 +52,15 @@ export function PublicNavbar() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1.5">
+          <nav aria-label="Navigasi utama" className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
+              const isActive = location.pathname === link.path || (link.path !== '/' && location.pathname.startsWith(`${link.path}/`));
               return (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 group ${
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group ${
                     isActive
                       ? 'text-white font-semibold'
                       : 'text-white/80 hover:text-white hover:bg-white/5'
@@ -76,11 +78,11 @@ export function PublicNavbar() {
             })}
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <Link to="/pesan">
               <Button
                 size="md"
-                className="bg-brand-600 hover:bg-brand-500 text-white shadow-sm flex items-center gap-2"
+                className="bg-brand-600 hover:bg-brand-900 text-white shadow-sm flex items-center gap-2"
               >
                 <Truck className="w-4 h-4" />
                 <span>Pesan Sekarang</span>
@@ -91,8 +93,8 @@ export function PublicNavbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-white p-2 rounded-lg hover:bg-brand-800 focus:outline-hidden"
-            aria-label="Buka menu navigasi"
+            className="lg:hidden text-white p-2 rounded-lg hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-200"
+            aria-label={mobileMenuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
             aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X size={22} weight="bold" /> : <List size={22} weight="bold" />}
@@ -101,18 +103,19 @@ export function PublicNavbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden bg-brand-900 border-b border-brand-800 px-4 pt-3 pb-6 flex flex-col gap-3 shadow-xl animate-in slide-in-from-top-2 duration-150">
+        <div className="lg:hidden bg-brand-900 border-b border-white/10 px-4 pt-3 pb-6 flex flex-col gap-3 shadow-xl">
           <nav className="flex flex-col gap-1">
             {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
+              const isActive = location.pathname === link.path || (link.path !== '/' && location.pathname.startsWith(`${link.path}/`));
               return (
                 <Link
                   key={link.path}
                   to={link.path}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`relative px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-between ${
                     isActive
-                      ? 'bg-brand-800 text-white font-semibold border-l-4 border-brand-600'
-                      : 'text-white/80 hover:text-white hover:bg-brand-800/50'
+                      ? 'bg-white/10 text-white font-semibold border-l-4 border-brand-600'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   <span>{link.label}</span>
@@ -122,11 +125,11 @@ export function PublicNavbar() {
             })}
           </nav>
 
-          <div className="pt-2 border-t border-brand-800">
+          <div className="pt-2 border-t border-white/10">
             <Link to="/pesan" onClick={() => setMobileMenuOpen(false)}>
               <Button
                 size="md"
-                className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white"
+                className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-900 text-white"
               >
                 <Truck className="w-4 h-4" />
                 <span>Pesan Sekarang</span>

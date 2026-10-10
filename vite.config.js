@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { publicDemoDataPlugin } from './scripts/public-demo-data.mjs';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [publicDemoDataPlugin(), react()],
   server: {
     port: 3000,
     open: false

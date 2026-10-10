@@ -213,3 +213,15 @@ Lave Streat adalah jasa cuci & repaint sepatu dengan opsi antar-jemput, plus jua
 4. **Multi-admin:** untuk MVP diasumsikan satu akun admin/owner — apakah sudah ada rencana staff/kurir yang perlu akses terbatas (mis. hanya lihat & update status, tanpa akses kelola konten/harga)?
 5. **Branding final:** nama tampil di website "Lave Streat" atau "L.A.V.E Treatment" — dan apakah logo final sudah ada asetnya (vektor) di luar yang ada di materi promosi?
 6. **Cloudinary:** pakai akun/plan Cloudinary yang mana (free tier cukup untuk volume galeri & testimoni yang diperkirakan, atau perlu plan berbayar)? Dan apakah unsigned upload preset dibatasi folder/ukuran tertentu supaya tidak disalahgunakan kalau preset-nya sampai bocor?
+
+## 11. Penambahan yang diminta pemilik — Progress Tracking & Before–After (10 Oktober 2026)
+
+- Halaman publik `/lacak-pesanan`: pelanggan mencocokkan kode struk dan nomor WhatsApp saat memesan, tanpa akun pelanggan.
+- Pelacakan menampilkan status, riwayat timestamp yang tersedia, metode, item, dan dokumentasi before–after. Tidak menampilkan nama/nomor pelanggan, alamat, koordinat, catatan internal, atau identitas admin.
+- Status mengikuti §6.4. Pesanan sabun dikirim tidak diberi tahap jemput/cuci fiktif; penolakan/pembatalan menghentikan tahap berikutnya. Waktu tahap yang tidak tercatat tidak boleh direkayasa.
+- Pembaruan melalui tombol Perbarui; ini bukan tracking kurir real-time atau notifikasi otomatis.
+- Foto dipasangkan per sudut, wajib before dan after. Dokumentasi umum untuk pesanan multi-item tidak otomatis dilekatkan ke sepatu pertama.
+- Galeri publik dan detail menggunakan pembanding geser dan mode berdampingan; detail mendukung pilihan sudut dan perbesar foto.
+- Pelacakan hanya lewat callable `getOrderProgress` yang memvalidasi dua kredensial dan membatasi percobaan, bukan membaca koleksi `orders` dari browser publik.
+- Demo hanya aktif di development tanpa Firebase, memakai contoh fiktif atau pesanan demo baru; tidak boleh memberi keberhasilan pesanan produksi dari localStorage.
+- Implementasi pemesanan memilih reCAPTCHA v2 checkbox; site key dan secret harus dikonfigurasi sebelum live. Pemilihan ini tidak menghapus kewajiban verifikasi server.

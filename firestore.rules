@@ -7,11 +7,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'admin@lavestreat.com' ||
-        request.auth.token.role == 'admin' ||
-        isSignedIn()
-      );
+      return isSignedIn() && request.auth.token.role == 'admin';
     }
 
     match /content/{docId} {
@@ -25,23 +21,28 @@ service cloud.firestore {
     }
 
     match /services/{serviceId} {
-      allow read: if true;
+      allow read: if resource.data.aktif == true || isAdmin();
       allow write: if isAdmin();
     }
 
     match /gallery/{galleryId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read: if resource.data.tampil_di_home == true || isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.before_url is string
+        && request.resource.data.after_url is string
+        && request.resource.data.before_url.matches('https://res[.]cloudinary[.]com/.*')
+        && request.resource.data.after_url.matches('https://res[.]cloudinary[.]com/.*');
+      allow delete: if isAdmin();
     }
 
     match /testimonials/{testiId} {
-      allow read: if true;
+      allow read: if resource.data.tampil == true || isAdmin();
       allow write: if isAdmin();
     }
 
     match /orders/{orderId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
     }
 
     match /{document=**} {

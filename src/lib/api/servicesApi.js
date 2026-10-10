@@ -80,12 +80,10 @@ export const servicesApi = {
         const colRef = collection(db, 'services');
         const q = onlyActive ? query(colRef, where('aktif', '==', true)) : colRef;
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          const list = snap.docs.map(d => normalizeService({ id: d.id, ...d.data() }));
-          return sortServices(list);
-        }
+        const list = snap.docs.map(d => normalizeService({ ...d.data(), id: d.id }));
+        return sortServices(list);
       } catch (err) {
-        console.warn('Firestore services fallback:', err.message);
+        throw new Error('Layanan belum dapat dimuat. Silakan coba lagi.');
       }
     }
 

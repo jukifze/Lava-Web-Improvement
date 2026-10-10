@@ -12,7 +12,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { PublicNavbar } from "./components/layout/PublicNavbar";
 import { PublicFooter } from "./components/layout/PublicFooter";
 import { PublicBottomNav } from "./components/layout/PublicBottomNav";
-import { settingsApi, checkAndAutoSeed } from "./lib/api";
+import { settingsApi } from "./lib/api";
 import { Button } from "./components/common/Button";
 
 const HomePage = lazy(() =>
@@ -38,6 +38,7 @@ const ContactPage = lazy(() =>
 const OrderPage = lazy(() =>
   import("./pages/public/OrderPage").then((m) => ({ default: m.OrderPage }))
 );
+const TrackingPage = lazy(() => import('./pages/public/TrackingPage').then(m => ({ default: m.TrackingPage })));
 
 const LoginPage = lazy(() =>
   import("./pages/admin/LoginPage").then((m) => ({ default: m.LoginPage }))
@@ -168,10 +169,6 @@ function NotFoundPage() {
 }
 
 export default function App() {
-  useEffect(() => {
-    checkAndAutoSeed();
-  }, []);
-
   return (
     <AuthProvider>
       <ToastProvider>
@@ -187,6 +184,7 @@ export default function App() {
                 <Route path="/galeri/:id" element={<GalleryDetailPage />} />
                 <Route path="/kontak" element={<ContactPage />} />
                 <Route path="/pesan" element={<OrderPage />} />
+                <Route path="/lacak-pesanan" element={<TrackingPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
 

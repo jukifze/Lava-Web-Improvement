@@ -5,6 +5,7 @@ import { Card } from '../../components/common/Card';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
+import { isFirebaseConfigured } from '../../lib/firebase';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-light flex flex-col justify-center items-center p-4">
+    <div data-admin-ui className="min-h-screen bg-brand-light flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-sm">
         <Card className="p-6 sm:p-8 border-brand-200/80 shadow-md bg-white rounded-2xl">
           <div className="flex flex-col items-center text-center mb-6">
@@ -85,13 +86,13 @@ export function LoginPage() {
               />
             </div>
 
-            <div className="p-2.5 bg-brand-light border border-brand-100 rounded-lg text-xs text-brand-900">
+            {!isFirebaseConfigured && import.meta.env.DEV && <div className="p-2.5 bg-brand-light border border-brand-100 rounded-lg text-xs text-brand-900">
               <span className="font-semibold block mb-0.5">Akses Cepat:</span>
               <div className="flex justify-between text-[11px] text-slate-wet">
                 <span>admin@lavestreat.com</span>
                 <span>admin123</span>
               </div>
-            </div>
+            </div>}
 
             <Button
               type="submit"

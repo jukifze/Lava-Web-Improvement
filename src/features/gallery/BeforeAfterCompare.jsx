@@ -1,160 +1,64 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import React, { useState, useEffect, useRef, useId } from 'react';
+import { ChevronsLeftRight, ImageOff } from 'lucide-react';
 import { getImageFramingStyle } from '../../lib/framing';
+import { Button } from '../../components/common/Button';
 
 export function BeforeAfterCompare({
-  beforeUrl,
-  afterUrl,
-  beforeFraming,
-  afterFraming,
-  beforeStyle,
-  afterStyle,
-  caption = '',
-  serviceTag = '',
-  className = '',
+  beforeUrl, afterUrl, beforeFraming, afterFraming, beforeStyle, afterStyle,
+  caption = '', serviceTag = '', className = '',
   imageClassName = 'aspect-[4/3] sm:aspect-[16/10] min-h-[260px]',
-  objectPosition = '50% 50%',
-  showHint = true,
-  header,
-  footer,
-  children
+  objectPosition = '50% 50%', showHint = true, header, footer, children,
 }) {
-  const [sliderPosition, setSliderPosition] = useState(50);
-  const [isInteracting, setIsInteracting] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const containerRef = useRef(null);
+  const [position, setPosition] = useState(50);
+  const [mode, setMode] = useState('slider');
+  const [failed, setFailed] = useState(false);
+  const dragging = useRef(false);
+  const container = useRef(null);
+  const id = useId();
+  useEffect(() => { setPosition(50); setFailed(false); }, [beforeUrl, afterUrl]);
 
-  useEffect(() => {
-    setSliderPosition(50);
-  }, [beforeUrl, afterUrl]);
-
-  const updatePositionFromClientX = useCallback((clientX) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const clampedX = Math.max(0, Math.min(x, rect.width));
-    const percentage = (clampedX / rect.width) * 100;
-    setSliderPosition(percentage);
-    setHasInteracted(true);
-  }, []);
-
-  const handlePointerDown = (e) => {
-    setIsInteracting(true);
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    updatePositionFromClientX(e.clientX);
-  };
-
-  const handlePointerMove = (e) => {
-    if (!isInteracting) return;
-    updatePositionFromClientX(e.clientX);
-  };
-
-  const handlePointerUp = (e) => {
-    setIsInteracting(false);
-    try {
-      e.currentTarget.releasePointerCapture?.(e.pointerId);
-    } catch {}
-  };
-
-  const handleSliderChange = (e) => {
-    setSliderPosition(Number(e.target.value));
-    setHasInteracted(true);
-  };
-
-  const safeObjPos = objectPosition || '50% 50%';
-  const safeBeforeStyle = beforeStyle || (beforeFraming ? getImageFramingStyle({ framing_before: beforeFraming }, 'before') : { objectPosition: safeObjPos });
-  const safeAfterStyle = afterStyle || (afterFraming ? getImageFramingStyle({ framing_after: afterFraming }, 'after') : { objectPosition: safeObjPos });
+  function updatePosition(event) {
+    const rect = container.current?.getBoundingClientRect();
+    if (rect?.width) setPosition(Math.round(Math.max(0, Math.min(100, (event.clientX - rect.left) / rect.width * 100))));
+  }
+  const before = beforeStyle || (beforeFraming ? getImageFramingStyle({ framing_before: beforeFraming }, 'before') : { objectPosition });
+  const after = afterStyle || (afterFraming ? getImageFramingStyle({ framing_after: afterFraming }, 'after') : { objectPosition });
+  const renderImage = (url, type, style) => <img src={url} alt={`${caption || 'Sepatu'} — ${type === 'before' ? 'sebelum' : 'sesudah'} perawatan`} loading="lazy" decoding="async" draggable={false} onError={() => setFailed(true)} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={style} />;
+  const unavailable = failed || !beforeUrl || !afterUrl;
 
   return (
-    <div className={`isolate relative bg-white rounded-lg border border-brand-200/90 overflow-hidden shadow-subtle flex flex-col ${className}`}>
-      <div
-        ref={containerRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        className={`relative w-full select-none overflow-hidden bg-slate-900 cursor-ew-resize touch-none ${imageClassName}`}
-      >
-        <img
-          src={afterUrl}
-          alt="Foto sesudah perawatan"
-          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
-          style={safeAfterStyle}
-        />
-
-        <div
-          className="absolute inset-0 overflow-hidden pointer-events-none"
-          style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
-        >
-          <img
-            src={beforeUrl}
-            alt="Foto sebelum perawatan"
-            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
-            style={safeBeforeStyle}
-          />
-        </div>
-
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_12px_rgba(0,0,0,0.6)] pointer-events-none z-10 transition-transform duration-75"
-          style={{ left: `${sliderPosition}%` }}
-        >
-          <div
-            className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white border-2 border-brand-600 text-brand-900 flex items-center justify-center shadow-xl transition-transform ${
-              isInteracting ? 'scale-110 shadow-2xl ring-4 ring-brand-600/30' : 'hover:scale-105'
-            }`}
-          >
-            <div className="flex items-center gap-0.5 text-brand-600">
-              <CaretLeft size={12} weight="bold" />
-              <div className="w-0.5 h-3 bg-brand-200 rounded-full" />
-              <CaretRight size={12} weight="bold" />
-            </div>
+    <div className={`bg-white rounded-card border border-brand-200 overflow-hidden shadow-subtle flex flex-col ${className}`}>
+      {unavailable ? <div role="status" className={`bg-brand-light flex flex-col items-center justify-center p-5 gap-3 text-slate-wet ${imageClassName}`}><ImageOff size={24} aria-hidden="true" /><p className="text-sm text-center">Pasangan foto belum dapat ditampilkan.</p>{beforeUrl && afterUrl && <Button variant="secondary" size="sm" onClick={() => setFailed(false)}>Coba muat ulang</Button>}</div> : <>
+        {mode === 'slider' ? <div id={`${id}-images`} ref={container}
+          onPointerDown={event => { if (event.button !== 0) return; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); updatePosition(event); }}
+          onPointerMove={event => { if (dragging.current) updatePosition(event); }}
+          onPointerUp={() => { dragging.current = false; }} onPointerCancel={() => { dragging.current = false; }}
+          className={`relative w-full overflow-hidden select-none bg-brand-light cursor-ew-resize touch-pan-y ${imageClassName}`}>
+          {renderImage(afterUrl, 'after', after)}
+          <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>{renderImage(beforeUrl, 'before', before)}</div>
+          <div aria-hidden="true" className="absolute top-0 bottom-0 w-0.5 bg-white pointer-events-none" style={{ left: `${position}%` }}><span className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 bg-white rounded-full border-2 border-brand-600 shadow-lg flex items-center justify-center text-brand-600"><ChevronsLeftRight size={20} /></span></div>
+          <span className="absolute top-3 left-3 rounded-md bg-brand-900/90 text-white text-xs font-semibold px-2 py-1 pointer-events-none">Sebelum</span>
+          <span className="absolute top-3 right-3 rounded-md bg-brand-600 text-white text-xs font-semibold px-2 py-1 pointer-events-none">Sesudah</span>
+        </div> : <div id={`${id}-images`} className="grid grid-cols-2 gap-0.5 bg-white">
+          {[['before', beforeUrl, before], ['after', afterUrl, after]].map(([type, url, style]) => <div key={type} className={`relative overflow-hidden bg-brand-light ${imageClassName}`}>{renderImage(url, type, style)}<span className={`absolute bottom-0 inset-x-0 px-2 py-2 text-center text-xs font-semibold text-white ${type === 'before' ? 'bg-brand-900/90' : 'bg-brand-600/95'}`}>{type === 'before' ? 'Sebelum' : 'Sesudah'}</span></div>)}
+        </div>}
+      </>}
+      <div className="p-4 space-y-3 flex-1 border-t border-brand-100">
+        {header}
+        {caption && <p className="text-sm font-semibold text-brand-900 leading-snug">{caption}</p>}
+        {serviceTag && <p className="text-xs text-slate-wet">{serviceTag}</p>}
+        {!unavailable && <>
+          <div className="flex gap-2" aria-label="Mode perbandingan foto">
+            <Button size="sm" variant={mode === 'slider' ? 'primary' : 'secondary'} aria-pressed={mode === 'slider'} onClick={() => setMode('slider')}>Geser</Button>
+            <Button size="sm" variant={mode === 'side' ? 'primary' : 'secondary'} aria-pressed={mode === 'side'} onClick={() => setMode('side')}>Berdampingan</Button>
           </div>
-        </div>
-
-        <div className="absolute top-3 left-3 z-10 flex items-center bg-slate-950/75 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md border border-white/20 uppercase tracking-wider shadow-sm pointer-events-none">
-          <span>Sebelum</span>
-        </div>
-
-        <div className="absolute top-3 right-3 z-10 flex items-center bg-brand-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md border border-white/20 uppercase tracking-wider shadow-sm pointer-events-none">
-          <span>Sesudah</span>
-        </div>
-
-        {showHint && !hasInteracted && (
-          <div className="absolute bottom-3 inset-x-0 mx-auto w-fit z-10 pointer-events-none animate-pulse">
-            <span className="px-2.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-white text-[11px] font-medium border border-white/20 shadow-md">
-              Geser untuk membandingkan
-            </span>
-          </div>
-        )}
-
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={sliderPosition}
-          onChange={handleSliderChange}
-          aria-label="Geser untuk membandingkan sebelum dan sesudah"
-          className="sr-only"
-        />
+          {mode === 'slider' && <div className="space-y-1">
+            <label htmlFor={`${id}-range`} className="text-xs text-slate-wet">{showHint ? 'Geser foto atau gunakan tombol panah pada slider.' : 'Posisi pembanding foto'}</label>
+            <input id={`${id}-range`} type="range" min="0" max="100" value={position} onChange={event => setPosition(Number(event.target.value))} aria-label={`Perbandingan sebelum dan sesudah${caption ? `: ${caption}` : ''}`} aria-controls={`${id}-images`} aria-valuetext={`${position}% foto sebelum, ${100 - position}% foto sesudah`} className="block w-full h-5 accent-brand-600 cursor-ew-resize focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 rounded" />
+          </div>}
+        </>}
+        {children}{footer}
       </div>
-
-      {(caption || serviceTag || header || footer || children) && (
-        <div className="p-4 flex flex-col justify-between gap-2.5 bg-white border-t border-brand-200/50">
-          {header}
-          {caption && (
-            <p className="text-sm font-semibold text-brand-900 leading-snug">
-              {caption}
-            </p>
-          )}
-          {serviceTag && (
-            <span className="text-xs font-medium text-brand-600 inline-block">
-              {serviceTag}
-            </span>
-          )}
-          {children}
-          {footer}
-        </div>
-      )}
     </div>
   );
 }

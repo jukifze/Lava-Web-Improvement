@@ -1,100 +1,46 @@
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged 
-} from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, onIdTokenChanged, getIdTokenResult } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../firebase';
 
 const LOCAL_AUTH_KEY = 'lavestreat_auth_user';
+const isDemo = !isFirebaseConfigured && import.meta.env.DEV;
+async function profile(user) {
+  const token = await getIdTokenResult(user);
+  return token.claims.role === 'admin' ? { uid: user.uid, email: user.email, role: 'admin' } : null;
+}
 
 export const authApi = {
   async login(email, password) {
     if (isFirebaseConfigured) {
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        return {
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          role: 'admin'
-        };
-      } catch (fbErr) {
-        if (email === 'admin@lavestreat.com' && password === 'admin123') {
-          const user = {
-            uid: 'admin-local-1',
-            email: 'admin@lavestreat.com',
-            role: 'admin',
-            displayName: 'Admin Lave Streat'
-          };
-          localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify(user));
-          return user;
-        }
-
-        if (fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/wrong-password') {
-          throw new Error('Email atau kata sandi tidak sesuai. Pastikan akun terdaftar di Firebase Authentication.');
-        }
-        throw fbErr;
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const user = await profile(credential.user);
+        if (!user) { await signOut(auth); throw new Error('Akun ini tidak memiliki izin admin.'); }
+        return user;
+      } catch (error) {
+        if (error.code?.startsWith('auth/')) throw new Error('Login gagal. Periksa akun admin dan koneksi Anda.');
+        throw error;
       }
     }
-
-    if (email === 'admin@lavestreat.com' && password === 'admin123') {
-      const user = {
-        uid: 'admin-local-1',
-        email: 'admin@lavestreat.com',
-        role: 'admin',
-        displayName: 'Admin Lave Streat'
-      };
-      localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify(user));
-      return user;
+    if (isDemo && email === 'admin@lavestreat.com' && password === 'admin123') {
+      const user = { uid: 'admin-local-1', email, role: 'admin', displayName: 'Admin Demo' };
+      localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify(user)); return user;
     }
-
-    throw new Error('Email atau password tidak sesuai.');
+    throw new Error(isDemo ? 'Email atau password tidak sesuai.' : 'Login admin belum dikonfigurasi.');
   },
-
   async logout() {
-    if (isFirebaseConfigured) {
-      try {
-        await signOut(auth);
-      } catch (err) {
-      }
-    }
+    if (isFirebaseConfigured) await signOut(auth);
     localStorage.removeItem(LOCAL_AUTH_KEY);
-    return true;
   },
-
   getCurrentUser() {
-    if (isFirebaseConfigured) {
-      const fbUser = auth.currentUser;
-      if (fbUser) {
-        return {
-          uid: fbUser.uid,
-          email: fbUser.email,
-          role: 'admin'
-        };
-      }
-    }
-
-    const localData = localStorage.getItem(LOCAL_AUTH_KEY);
-    return localData ? JSON.parse(localData) : null;
+    if (!isDemo) return null;
+    try { return JSON.parse(localStorage.getItem(LOCAL_AUTH_KEY)); } catch { return null; }
   },
-
   onAuthStateChange(callback) {
-    if (isFirebaseConfigured) {
-      return onAuthStateChanged(auth, (user) => {
-        if (user) {
-          callback({
-            uid: user.uid,
-            email: user.email,
-            role: 'admin'
-          });
-        } else {
-          const localData = localStorage.getItem(LOCAL_AUTH_KEY);
-          callback(localData ? JSON.parse(localData) : null);
-        }
-      });
-    }
-
-    const currentUser = this.getCurrentUser();
-    callback(currentUser);
-    return () => {};
-  }
+    if (isFirebaseConfigured) return onIdTokenChanged(auth, async user => {
+      if (!user) { callback(null); return; }
+      try { const result = await profile(user); if (auth.currentUser?.uid === user.uid) callback(result); }
+      catch { callback(null); }
+    });
+    callback(this.getCurrentUser()); return () => {};
+  },
 };

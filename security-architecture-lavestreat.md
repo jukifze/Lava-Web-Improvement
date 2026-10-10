@@ -392,3 +392,15 @@ Kombinasi **captcha (anti-bot pada level formulir) + App Check (anti-abuse pada 
 | 4 | Konfigurasi CSP & security headers di `firebase.json` (§6.2) | Wajib sebelum rilis |
 | 5 | Aktifkan Firebase App Check, mulai mode Monitor lalu Enforce (§6.3) | Direkomendasikan sebelum rilis publik |
 | 6 | Evaluasi migrasi Cloudinary unsigned preset → signed upload lewat Cloud Function (§5.3) | Direkomendasikan, bisa menyusul pasca-MVP |
+
+## 7. Pelacakan guest — pengecualian terbatas, bukan akses publik ke orders
+
+Penambahan yang diminta pemilik pada 10 Oktober 2026 memperbolehkan proyeksi progres minimal melalui `getOrderProgress`. Koleksi `orders` tetap tidak dapat dibaca publik dan tidak dapat ditulis langsung oleh client mana pun.
+
+- Callable mencocokkan kode pesanan/invoice dan nomor WhatsApp yang dinormalisasi (08/+628). Perbandingan hash nomor memakai timingSafeEqual; kegagalan kode dan nomor memakai respons not-found yang sama.
+- Maksimal 12 permintaan per IP dalam 15 menit melalui transaksi pada koleksi privat `tracking_rate_limits`. IP disimpan sebagai SHA-256; aktifkan Firestore TTL pada field `expiresAt` untuk pembersihan otomatis. Kebijakan ini dapat dituning setelah mengukur trafik/NAT pelanggan.
+- Respons hanya `code`, `status`, `method`, waktu, history status/timestamp, item allowlisted, dan pasangan URL Cloudinary. Tidak ada objek pelanggan/alamat, catatan admin, total, UID atau nomor kontak.
+- `updateOrderStatus` hanya menerima admin custom claim dan memvalidasi workflow melalui transaksi. `updateOrderBeforeAfter` memvalidasi pasangan Cloudinary; publikasi dari detail order menyimpan order + galeri secara atomik dengan ID galeri stabil agar retry tidak menduplikasi.
+- Firebase yang dikonfigurasi tidak boleh jatuh ke akun admin lokal, order lokal, atau data galeri contoh saat server menolak. Captcha tanpa secret harus gagal.
+- Build produksi memproyeksikan fixture galeri publik dan membuang fixture orders sebelum bundling. Arsip asli di repository tetap perlu dilindungi aksesnya; mekanisme build bukan pembersihan riwayat Git atau migrasi dokumen Firestore lama.
+- Sebelum live: deploy functions/rules bersama, set role admin, isi reCAPTCHA v2/hostname, bersihkan metadata pelanggan pada galeri lama, dan evaluasi App Check sesuai §6.3. Audit dependency dan pengujian Firebase nyata tetap wajib.

@@ -24,18 +24,7 @@ export const ORDER_STATUSES = [
   'Dibatalkan'
 ];
 
-export const STATUS_TRANSITIONS = {
-  'Menunggu Konfirmasi': ['Dikonfirmasi', 'Ditolak', 'Dibatalkan'],
-  'Dikonfirmasi': ['Sedang Dijemput', 'Diproses', 'Dibatalkan'],
-  'Sedang Dijemput': ['Diproses', 'Dibatalkan'],
-  'Diproses': ['Siap Diantar', 'Siap Diambil', 'Dikirim', 'Dibatalkan'],
-  'Siap Diantar': ['Selesai', 'Dibatalkan'],
-  'Siap Diambil': ['Selesai', 'Dibatalkan'],
-  'Dikirim': ['Selesai', 'Dibatalkan'],
-  'Selesai': [],
-  'Ditolak': [],
-  'Dibatalkan': []
-};
+export { STATUS_TRANSITIONS, getNextOrderStatuses } from '../../firebase-functions/workflow.mjs';
 
 export const DEFAULT_OUTLET_LOCATION = {
   lat: -7.4338,

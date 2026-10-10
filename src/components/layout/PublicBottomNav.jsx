@@ -5,7 +5,8 @@ import {
   Sparkle, 
   Images, 
   ChatCircleDots,
-  Truck
+  Truck,
+  Clock
 } from '@phosphor-icons/react';
 
 export function PublicBottomNav() {
@@ -17,13 +18,14 @@ export function PublicBottomNav() {
   const isPesan = currentPath.startsWith('/pesan');
   const isGaleri = currentPath.startsWith('/galeri');
   const isKontak = currentPath.startsWith('/kontak');
+  const isTracking = currentPath.startsWith('/lacak-pesanan');
 
   return (
     <nav 
       aria-label="Navigasi Bawah Mobile"
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-brand-200/80 shadow-[0_-4px_20px_rgba(10,61,102,0.08)] md:hidden transition-transform duration-200"
     >
-      <div className="grid grid-cols-5 items-center h-16 max-w-lg mx-auto px-2 relative">
+      <div className="grid grid-cols-6 items-center h-16 max-w-lg mx-auto px-2 relative">
         <Link
           to="/"
           className={`flex flex-col items-center justify-center gap-1 transition-colors ${
@@ -93,6 +95,7 @@ export function PublicBottomNav() {
           </span>
         </Link>
 
+        <Link to="/lacak-pesanan" aria-current={isTracking ? 'page' : undefined} className={`flex flex-col items-center justify-center gap-1 min-h-[44px] ${isTracking ? 'text-brand-600' : 'text-slate-wet'}`}><Clock size={22} weight={isTracking ? 'fill' : 'regular'} /><span className="text-[10px] font-medium leading-none">Lacak</span></Link>
         <Link
           to="/kontak"
           className={`flex flex-col items-center justify-center gap-1 transition-colors ${

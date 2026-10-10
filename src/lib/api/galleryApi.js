@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase';
 import { initialGallery } from './mockData';
+import { publicGalleryEntry } from '../galleryPublicModel';
 
 const STORAGE_KEY = 'lavestreat_gallery_data_v16';
 
@@ -22,15 +23,7 @@ function getLocalGallery() {
       return initialGallery;
     }
     const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed) || parsed.length < initialGallery.length) {
-      const existingIds = new Set(Array.isArray(parsed) ? parsed.map(p => String(p.id)) : []);
-      const merged = [
-        ...(Array.isArray(parsed) ? parsed : []),
-        ...initialGallery.filter(item => !existingIds.has(String(item.id)))
-      ];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-      return merged;
-    }
+    if (!Array.isArray(parsed)) throw new Error('Invalid gallery cache');
     return parsed;
   } catch {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(initialGallery));
@@ -50,12 +43,10 @@ export const galleryApi = {
         const colRef = collection(db, 'gallery');
         const q = onlyHome ? query(colRef, where('tampil_di_home', '==', true)) : colRef;
         const snap = await getDocs(q);
-        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (docs.length > 0) {
-          list = docs;
-        }
+        const docs = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        return onlyHome ? docs.map(publicGalleryEntry) : docs;
       } catch (err) {
-        console.warn('Firestore gallery fallback:', err.message);
+        throw new Error('Galeri belum dapat dimuat. Silakan coba lagi.');
       }
     }
 
@@ -64,18 +55,22 @@ export const galleryApi = {
       list = onlyHome ? items.filter(i => i.tampil_di_home) : items;
     }
 
-    return list;
+    return onlyHome ? list.map(publicGalleryEntry) : list;
   },
 
-  async getGalleryItemById(id) {
+  async getGalleryItemById(id, publicOnly = false) {
     if (!id) return null;
+    if (publicOnly) {
+      const items = await galleryApi.getGallery(true);
+      return items.find(item => String(item.id) === String(id)) || null;
+    }
     let found = null;
 
     if (isFirebaseConfigured) {
       try {
         const snap = await getDoc(doc(db, 'gallery', id));
         if (snap.exists()) {
-          found = { id: snap.id, ...snap.data() };
+          found = { ...snap.data(), id: snap.id };
         } else {
           const colRef = collection(db, 'gallery');
           const snapAll = await getDocs(colRef);
@@ -88,27 +83,18 @@ export const galleryApi = {
                    String(data.invoice_number) === String(id);
           });
           if (match) {
-            found = { id: match.id, ...match.data() };
+            found = { ...match.data(), id: match.id };
           }
         }
       } catch (err) {
-        console.warn('Firestore getGalleryItemById fallback:', err.message);
+        throw new Error('Dokumentasi belum dapat dimuat. Silakan coba lagi.');
       }
+      return found;
     }
 
     if (!found) {
       const items = getLocalGallery();
       found = items.find(i =>
-        String(i.id) === String(id) ||
-        String(i.item_id) === String(id) ||
-        String(i.order_id) === String(id) ||
-        String(i.invoice) === String(id) ||
-        String(i.invoice_number) === String(id)
-      ) || null;
-    }
-
-    if (!found) {
-      found = initialGallery.find(i =>
         String(i.id) === String(id) ||
         String(i.item_id) === String(id) ||
         String(i.order_id) === String(id) ||
@@ -132,7 +118,6 @@ export const galleryApi = {
       layanan_terkait: payload.layanan_terkait || '',
       order_id: payload.order_id || null,
       invoice: payload.invoice || payload.order_id || null,
-      customer_name: payload.customer_name || payload.pelanggan || null,
       shoe_brand: payload.shoe_brand || '',
       shoe_type: payload.shoe_type || '',
       object_position: payload.object_position || '50% 50%',
@@ -162,6 +147,10 @@ export const galleryApi = {
   },
 
   async updateGalleryItem(id, payload) {
+    // Visibility-only actions must preserve the existing pair and its framing.
+    const current = await galleryApi.getGalleryItemById(id);
+    if (!current) throw new Error('Item galeri tidak ditemukan');
+    payload = { ...current, ...payload };
     if (!payload.before_url || !payload.after_url) {
       throw new Error('Kedua foto (Sebelum dan Sesudah) wajib diisi.');
     }
@@ -173,7 +162,6 @@ export const galleryApi = {
       layanan_terkait: payload.layanan_terkait || '',
       order_id: payload.order_id || null,
       invoice: payload.invoice || payload.order_id || null,
-      customer_name: payload.customer_name || payload.pelanggan || null,
       shoe_brand: payload.shoe_brand || '',
       shoe_type: payload.shoe_type || '',
       object_position: payload.object_position || '50% 50%',

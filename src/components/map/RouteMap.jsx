@@ -14,6 +14,16 @@ const createCustomIcon = (color = '#0A3D66', label = 'O') => {
   });
 };
 
+function createPopup(title, address) {
+  const popup = document.createElement('div');
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  const description = document.createElement('div');
+  description.textContent = String(address || '');
+  popup.append(heading, description);
+  return popup;
+}
+
 export function RouteMap({
   origin = DEFAULT_OUTLET_LOCATION,
   originLabel = DEFAULT_OUTLET_LOCATION.address,
@@ -63,11 +73,11 @@ export function RouteMap({
 
     L.marker([origin.lat, origin.lng], {
       icon: createCustomIcon(originColor, originBadge)
-    }).addTo(map).bindPopup(`<b>${popupTitle}</b><br/>${origin.address || originLabel}`);
+    }).addTo(map).bindPopup(createPopup(popupTitle, origin.address || originLabel));
 
     L.marker([destination.lat, destination.lng], {
       icon: createCustomIcon('#2F6FED', 'T')
-    }).addTo(map).bindPopup(`<b>Tujuan Pelanggan</b><br/>${destination.teks || ''}`);
+    }).addTo(map).bindPopup(createPopup('Tujuan Pelanggan', destination.teks));
 
     const fetchRoute = async () => {
       try {

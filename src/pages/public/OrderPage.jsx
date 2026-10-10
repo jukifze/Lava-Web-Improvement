@@ -14,11 +14,13 @@ import {
   Printer
 } from '@phosphor-icons/react';
 import { MessageCircle, CheckCircle2, Trash2, ChevronDown } from 'lucide-react';
-import { Button } from '../../components/common/Button';
+import { Button, buttonVariants } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { LocationPicker } from '../../components/map/LocationPicker';
 import { SliderCaptchaModal } from '../../components/common/SliderCaptchaModal';
+import { RecaptchaModal } from '../../components/common/RecaptchaModal';
+import { isFirebaseConfigured } from '../../lib/firebase';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useToast } from '../../context/ToastContext';
 import { servicesApi, ordersApi, settingsApi } from '../../lib/api';
@@ -229,7 +231,7 @@ export function OrderPage() {
     setIsCaptchaOpen(true);
   };
 
-  const handleCaptchaSuccess = async () => {
+  const handleCaptchaSuccess = async (captchaToken) => {
     setIsCaptchaOpen(false);
     setSubmitting(true);
 
@@ -273,6 +275,7 @@ Mohon konfirmasi dan informasi tindak lanjut penjemputan/pengerjaan sepatu saya.
 
     try {
       const payload = {
+        captchaToken: typeof captchaToken === 'string' ? captchaToken : null,
         id: orderId,
         pelanggan: customer,
         items: itemsPayload,
@@ -285,8 +288,9 @@ Mohon konfirmasi dan informasi tindak lanjut penjemputan/pengerjaan sepatu saya.
       };
 
       const res = await ordersApi.createOrder(payload);
+      setWaRedirectUrl(`https://wa.me/${targetWaNumber}?text=${encodeURIComponent(waMessage.replace(orderId, res.id))}`);
       setCreatedOrder(res);
-      showToast('Pesanan berhasil! Struk sedang diunduh...', 'success');
+      showToast(res.demo ? 'Pesanan contoh disimpan. Struk sedang diunduh...' : 'Pesanan berhasil! Struk sedang diunduh...', 'success');
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       try {
@@ -328,7 +332,7 @@ Mohon konfirmasi dan informasi tindak lanjut penjemputan/pengerjaan sepatu saya.
             </div>
 
             <p className="text-slate-wet text-sm sm:text-base leading-relaxed mb-6">
-              Terima kasih, <strong className="text-brand-900">{customer.nama}</strong>. Pesanan Anda berhasil disimpan di sistem Lave Streat. Tim kami akan segera menghubungi nomor WhatsApp Anda untuk konfirmasi jadwal.
+              {createdOrder.demo ? 'Pesanan contoh disimpan di browser ini untuk pengujian. Pesanan ini tidak dikirim ke tim Lave Streat.' : <>Terima kasih, <strong className="text-brand-900">{customer.nama}</strong>. Pesanan Anda berhasil disimpan di sistem Lave Streat. Tim kami akan segera menghubungi nomor WhatsApp Anda untuk konfirmasi jadwal.</>}
             </p>
 
             <div className="bg-slate-50 rounded-md border border-brand-200 p-4 sm:p-5 text-left text-xs sm:text-sm space-y-2 mb-6">
@@ -355,6 +359,7 @@ Mohon konfirmasi dan informasi tindak lanjut penjemputan/pengerjaan sepatu saya.
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center flex-wrap">
+              <Link to={`/lacak-pesanan?kode=${encodeURIComponent(createdOrder.id)}`} className={buttonVariants({ variant: 'primary', size: 'lg', className: 'w-full sm:w-auto gap-2' })}>Lacak Progres Pesanan <ArrowRight size={16} /></Link>
               <Button
                 variant="primary"
                 size="md"
@@ -1026,12 +1031,12 @@ Mohon konfirmasi dan informasi tindak lanjut penjemputan/pengerjaan sepatu saya.
 
       </div>
 
-      <SliderCaptchaModal
+      {isFirebaseConfigured ? <RecaptchaModal isOpen={isCaptchaOpen} onClose={() => setIsCaptchaOpen(false)} onSuccess={handleCaptchaSuccess} /> : <SliderCaptchaModal
         isOpen={isCaptchaOpen}
         onClose={() => setIsCaptchaOpen(false)}
         onSuccess={handleCaptchaSuccess}
-        title="Verifikasi Keamanan Pemesanan"
-      />
+        title="Verifikasi Pesanan Contoh"
+      />}
     </div>
   );
 }

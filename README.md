@@ -72,6 +72,9 @@ VITE_USE_CLOUD_FUNCTIONS
 
 Script lain: `npm run build` (build produksi) dan `npm run preview` (pratinjau hasil build).
 
+Simulasi Progress Tracking dan Before–After pelanggan/admin: `npm run test:simulation`.
+Tes menjalankan halaman React dan API demo dalam DOM terisolasi, tanpa mengubah data browser pengguna atau layanan produksi. Panduan uji manual dan batas verifikasi ada di [`SIMULASI-PROGRESS-BEFORE-AFTER.md`](SIMULASI-PROGRESS-BEFORE-AFTER.md).
+
 ## Struktur Proyek
 
 ```

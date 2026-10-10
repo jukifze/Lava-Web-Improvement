@@ -40,7 +40,7 @@ export const testimonialsApi = {
         const snap = await getDocs(q);
         return snap.docs.map(d => ({ id: d.id, ...d.data() }));
       } catch (err) {
-        console.warn('Firestore testimonials fallback:', err.message);
+        throw new Error('Testimoni belum dapat dimuat. Silakan coba lagi.');
       }
     }
 

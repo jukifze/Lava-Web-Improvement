@@ -1,52 +1,18 @@
 export async function uploadImage(file) {
-  if (!file) {
-    return '';
-  }
-
+  if (!file) throw new Error('Pilih gambar yang akan diunggah.');
   if (typeof file === 'string') {
-    if (file.startsWith('http://') || file.startsWith('https://')) {
-      return file;
-    }
+    try { const url = new URL(file); if (url.protocol === 'https:' && url.hostname === 'res.cloudinary.com') return url.href; } catch {}
+    throw new Error('Gambar harus berupa URL Cloudinary yang aman.');
   }
-
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Gunakan JPG, PNG, atau WebP maksimal 10 MB.');
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-  const getBase64Fallback = () => new Promise((resolve) => {
-    if (typeof file === 'string') {
-      resolve(file);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.readAsDataURL(file);
-  });
-
-  if (!cloudName || !uploadPreset) {
-    return getBase64Fallback();
-  }
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', uploadPreset);
-
-  try {
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const errMsg = errData?.error?.message;
-      console.warn('Cloudinary upload warning:', errMsg);
-      return getBase64Fallback();
-    }
-
-    const data = await response.json();
-    return data.secure_url;
-  } catch (err) {
-    console.warn('Network error uploading to Cloudinary, fallback to data URL:', err);
-    return getBase64Fallback();
-  }
+  const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !preset) throw new Error('Upload Cloudinary belum dikonfigurasi.');
+  const body = new FormData(); body.append('file', file); body.append('upload_preset', preset);
+  let response;
+  try { response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body }); }
+  catch { throw new Error('Upload gagal. Periksa koneksi dan coba lagi.'); }
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.secure_url) throw new Error('Upload Cloudinary gagal. Gambar belum disimpan; silakan coba lagi.');
+  return uploadImage(result.secure_url);
 }

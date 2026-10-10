@@ -26,12 +26,21 @@
   body {
     background-color: #EAF7FE;
     color: #0B1F2E;
-    font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-display {
-    font-family: 'Poppins', system-ui, sans-serif;
+  .font-display {
+    font-family: 'Baloo 2', 'Inter', system-ui, sans-serif;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .page-smooth-enter, .animate-float-smooth, .animate-pulse { animation: none; }
+}
+
+[data-admin-ui] .font-display {
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 .leaflet-container {

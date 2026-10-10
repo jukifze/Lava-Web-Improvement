@@ -38,6 +38,7 @@ export function PublicFooter({ settings }) {
               <Link to="/tentang-kami" className="hover:text-white transition-colors">Tentang Kami</Link>
               <Link to="/layanan" className="hover:text-white transition-colors">Katalog Layanan</Link>
               <Link to="/galeri" className="hover:text-white transition-colors">Galeri Hasil</Link>
+              <Link to="/lacak-pesanan" className="hover:text-white transition-colors">Lacak Pesanan</Link>
               <Link to="/kontak" className="hover:text-white transition-colors">Lokasi & Kontak</Link>
               <Link
                 to="/pesan"

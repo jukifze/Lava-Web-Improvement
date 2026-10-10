@@ -25,8 +25,8 @@ import { uploadImage } from '../../lib/cloudinary';
 import { BeforeAfterCompare } from '../../features/gallery/BeforeAfterCompare';
 import { RouteMap } from '../../components/map/RouteMap';
 import { useToast } from '../../context/ToastContext';
-import { ordersApi, settingsApi, galleryApi } from '../../lib/api';
-import { STATUS_TRANSITIONS, DEFAULT_OUTLET_LOCATION } from '../../lib/constants';
+import { ordersApi, settingsApi } from '../../lib/api';
+import { getNextOrderStatuses, DEFAULT_OUTLET_LOCATION } from '../../lib/constants';
 import { printOrderReceipt } from '../../lib/orderReceiptPdf';
 
 const SLOT_LABELS = {
@@ -111,7 +111,7 @@ export function OrderDetailPage() {
           if (firstActive) setSelectedWorkerId(firstActive.id);
         }
 
-        const transitions = STATUS_TRANSITIONS[ord?.status] || [];
+        const transitions = ord ? getNextOrderStatuses(ord) : [];
         if (transitions.length > 0) {
           setNewStatus(transitions[0]);
         }
@@ -128,7 +128,7 @@ export function OrderDetailPage() {
           setGalleryData({
             before_url: '',
             after_url: '',
-            caption: `Restorasi ${defaultService} pada ${ord?.pelanggan?.nama || 'Sepatu'}`,
+            caption: `Hasil perawatan ${defaultService}`,
             layanan_terkait: defaultService
           });
         }
@@ -155,7 +155,7 @@ export function OrderDetailPage() {
       setSuccessMsg(`Status pesanan berhasil diperbarui menjadi "${newStatus}".`);
       setStatusNote('');
 
-      const nextTransitions = STATUS_TRANSITIONS[newStatus] || [];
+      const nextTransitions = getNextOrderStatuses(updated);
       setNewStatus(nextTransitions[0] || '');
     } catch (err) {
       setError(err.message || 'Gagal mengubah status pesanan.');
@@ -190,15 +190,12 @@ export function OrderDetailPage() {
         tampil_di_home: true,
         order_id: order.id,
         invoice: order.invoice || order.id,
-        customer_name: order.pelanggan?.nama || 'Pelanggan Lave Streat',
         object_position: galleryData.object_position || '50% 50%',
         pos_y: galleryData.pos_y ?? 50
       };
 
-      await galleryApi.createGalleryItem(payload);
-      await ordersApi.updateOrder(order.id, { before_after: payload });
-
-      setOrder(prev => ({ ...prev, before_after: payload }));
+      const saved = await ordersApi.saveBeforeAfter(order.id, payload);
+      setOrder(saved);
       setShowGalleryForm(false);
       showToast('Dokumentasi Before-After berhasil disimpan dan masuk ke Galeri publik!');
     } catch (err) {
@@ -246,7 +243,7 @@ export function OrderDetailPage() {
     );
   }
 
-  const allowedTransitions = STATUS_TRANSITIONS[order.status] || [];
+  const allowedTransitions = getNextOrderStatuses(order);
 
   const outletOrigin = {
     lat: settings?.outlet_lat ?? DEFAULT_OUTLET_LOCATION.lat,

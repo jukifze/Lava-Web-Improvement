@@ -1,78 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Truck, ChevronLeft, ChevronRight, Eye, Layers } from 'lucide-react';
+import { Truck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { PageHeader } from '../../components/common/PageHeader';
 import { galleryApi } from '../../lib/api';
 import { getImageFramingStyle } from '../../lib/framing';
+import { BeforeAfterCompare } from '../../features/gallery/BeforeAfterCompare';
 
 const ITEMS_PER_PAGE = 12;
 
 function GalleryCard({ item }) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <Link
-      to={`/galeri/${item.id}`}
-      className="group relative bg-white rounded-lg overflow-hidden border border-brand-200/80 shadow-xs hover:shadow-lg hover:border-brand-300 transition-all duration-300 flex flex-col"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <div className="relative w-full aspect-[4/3] min-h-[190px] overflow-hidden bg-slate-100">
-        <div className="absolute inset-0 grid grid-cols-2">
-          <div className="relative overflow-hidden border-r-2 border-white">
-            <img
-              src={item.before_url}
-              alt={`${item.caption} sebelum`}
-              loading="lazy"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              style={getImageFramingStyle(item, 'before')}
-            />
-            <div className="absolute bottom-0 inset-x-0 py-1 bg-black/50 backdrop-blur-xs text-center z-10">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/90">Sebelum</span>
-            </div>
-          </div>
-          <div className="relative overflow-hidden">
-            <img
-              src={item.after_url}
-              alt={`${item.caption} sesudah`}
-              loading="lazy"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              style={getImageFramingStyle(item, 'after')}
-            />
-            <div className="absolute bottom-0 inset-x-0 py-1 bg-brand-600/70 backdrop-blur-xs text-center z-10">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/90">Sesudah</span>
-            </div>
-          </div>
-        </div>
-
-        <div className={`absolute inset-0 bg-brand-900/60 backdrop-blur-[2px] flex items-center justify-center transition-opacity duration-300 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="px-3.5 py-1.5 rounded-md bg-white/95 text-brand-900 flex items-center gap-1.5 shadow-lg text-xs font-bold">
-            <Eye className="w-4 h-4 text-brand-600" />
-            <span>Lihat Detail Restorasi</span>
-          </div>
-        </div>
-
-        {item.slots && item.slots.length > 1 && (
-          <span className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded-md bg-brand-900/80 backdrop-blur-xs text-white text-[10px] font-semibold border border-white/20 shadow-xs flex items-center gap-1">
-            <Layers className="w-3 h-3" />
-            <span>{item.slots.length} Sudut</span>
-          </span>
-        )}
-      </div>
-
-      <div className="px-4 py-3.5 flex items-start justify-between gap-3 grow bg-white">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-brand-900 leading-snug truncate group-hover:text-brand-600 transition-colors">
-            {item.caption}
-          </h3>
-          <span className="text-[11px] text-slate-wet mt-0.5 block truncate">
-            {item.layanan_terkait || 'Treatment Sepatu'}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
+  return <BeforeAfterCompare beforeUrl={item.before_url} afterUrl={item.after_url}
+    beforeStyle={getImageFramingStyle(item, 'before')} afterStyle={getImageFramingStyle(item, 'after')}
+    caption={item.caption} serviceTag={item.layanan_terkait || 'Treatment Sepatu'} imageClassName="aspect-[4/3] min-h-[190px]"
+    footer={<Link to={`/galeri/${item.id}`} className="inline-flex items-center gap-1.5 text-sm text-brand-600 font-semibold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">Lihat detail <ChevronRight size={15} aria-hidden="true" /></Link>} />;
 }
 
 function Pagination({ currentPage, totalPages, onPageChange }) {
@@ -164,21 +105,27 @@ export function GalleryPage() {
   const [gallery, setGallery] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const gridRef = useRef(null);
 
   useEffect(() => {
+    let active = true;
     async function loadGallery() {
+      setLoading(true); setError('');
       try {
-        const items = await galleryApi.getGallery(false);
-        setGallery(items);
+        const items = await galleryApi.getGallery(true);
+        if (active) setGallery(items);
       } catch {
+        if (active) setError('Galeri belum dapat dimuat. Periksa koneksi dan coba lagi.');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     loadGallery();
-  }, []);
+    return () => { active = false; };
+  }, [retry]);
 
   const getItemCategory = (item) => {
     if (item.kategori) return item.kategori.toLowerCase();
@@ -216,9 +163,9 @@ export function GalleryPage() {
   return (
     <div className="bg-brand-light min-h-screen page-smooth-enter">
       <PageHeader
-        title="Galeri Restorasi"
+        title="Before–After"
         breadcrumb={[{ label: 'Galeri' }]}
-        subtitle="Dokumentasi resmi sebelum dan sesudah pengerjaan perawatan sepatu dari workshop Lave Streat. Klik foto untuk membuka detail restorasi interaktif."
+        subtitle="Lihat hasil perawatan nyata dari workshop Lave Streat. Geser pembanding atau buka detail untuk melihat setiap sudut sepatu."
         bgImage="/services/repaint.jpg"
       />
 
@@ -232,6 +179,7 @@ export function GalleryPage() {
                   key={cat.id}
                   type="button"
                   onClick={() => handleCategoryChange(cat.id)}
+                  aria-pressed={isActive}
                   className={`px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer ${
                     isActive
                       ? 'bg-brand-600 text-white shadow-xs'
@@ -253,7 +201,7 @@ export function GalleryPage() {
           )}
         </div>
 
-        {loading ? (
+        {error ? <div role="alert" className="bg-white border border-brand-200 rounded-card p-8 text-center"><p className="text-sm text-danger mb-4">{error}</p><Button onClick={() => setRetry(value => value + 1)}>Coba lagi</Button></div> : loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="rounded-lg overflow-hidden">

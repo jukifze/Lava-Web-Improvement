@@ -9,7 +9,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs",
+    "test:ui": "node scripts/verify-ui.mjs",
+    "test:simulation": "node scripts/simulate-order-flow.mjs",
+    "test:build": "node scripts/verify-build.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",
@@ -31,6 +35,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "jsdom": "26.1.0",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",
     "vite": "^6.0.0"

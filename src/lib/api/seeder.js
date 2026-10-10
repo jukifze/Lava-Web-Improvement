@@ -10,11 +10,11 @@ import {
   initialServices, 
   initialGallery, 
   initialTestimonials, 
-  initialOrders, 
   initialSettings, 
   initialHomeContent, 
   initialAboutContent 
 } from './mockData';
+import { publicGalleryEntry } from '../galleryPublicModel';
 
 export async function seedFirestore(force = false) {
   if (!isFirebaseConfigured) {
@@ -36,17 +36,12 @@ export async function seedFirestore(force = false) {
 
     initialGallery.forEach((item) => {
       const docRef = doc(db, 'gallery', item.id);
-      batch.set(docRef, item);
+      batch.set(docRef, publicGalleryEntry(item));
     });
 
     initialTestimonials.forEach((testi) => {
       const docRef = doc(db, 'testimonials', testi.id);
       batch.set(docRef, testi);
-    });
-
-    initialOrders.forEach((order) => {
-      const docRef = doc(db, 'orders', order.id);
-      batch.set(docRef, order);
     });
 
     batch.set(doc(db, 'settings', 'general'), initialSettings);

@@ -20,7 +20,7 @@ export function AdminLayout() {
     );
   }
 
-  if (!user) {
+  if (!user || user.role !== 'admin') {
     return <Navigate to="/admin/login" replace state={{ from: location }} />;
   }
 
@@ -46,7 +46,7 @@ export function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FBFE] flex">
+    <div data-admin-ui className="min-h-screen bg-[#F8FBFE] flex">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
