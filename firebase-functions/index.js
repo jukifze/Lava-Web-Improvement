@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 admin.initializeApp();
 
@@ -175,6 +176,37 @@ function toPublicTracking(order) {
   };
 }
 
+// Pembatas percobaan: 4 digit hanya 10.000 kemungkinan, jadi tebakan salah
+// dihitung per kode pesanan dan kode dikunci sementara bila terlalu banyak.
+// Koleksi `tracking_attempts` tertutup dari client oleh aturan catch-all.
+const TRACK_MAX_FAILURES = 5;
+const TRACK_WINDOW_MS = 15 * 60 * 1000;
+
+function trackAttemptRef(db, code) {
+  const key = crypto.createHash('sha256').update(code.toLowerCase()).digest('hex');
+  return db.collection('tracking_attempts').doc(key);
+}
+
+async function isTrackingLocked(ref) {
+  const snap = await ref.get();
+  if (!snap.exists) return false;
+  const { count = 0, window_start = 0 } = snap.data();
+  return count >= TRACK_MAX_FAILURES && Date.now() - window_start < TRACK_WINDOW_MS;
+}
+
+async function recordTrackingFailure(db, ref) {
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const now = Date.now();
+    const current = snap.exists ? snap.data() : null;
+    const expired = !current || now - current.window_start >= TRACK_WINDOW_MS;
+    tx.set(ref, {
+      count: expired ? 1 : current.count + 1,
+      window_start: expired ? now : current.window_start
+    });
+  });
+}
+
 exports.trackOrder = functions.https.onCall(async (data) => {
   const code = String((data && data.code) || '').trim();
   const phoneSuffix = String((data && data.phoneSuffix) || '');
@@ -183,6 +215,11 @@ exports.trackOrder = functions.https.onCall(async (data) => {
   }
 
   const db = admin.firestore();
+  const attemptRef = trackAttemptRef(db, code);
+  if (await isTrackingLocked(attemptRef)) {
+    throw new functions.https.HttpsError('resource-exhausted', 'Terlalu banyak percobaan. Coba lagi dalam 15 menit.');
+  }
+
   const orders = db.collection('orders');
   let order = null;
 
@@ -202,6 +239,7 @@ exports.trackOrder = functions.https.onCall(async (data) => {
   const phone = String((order && order.pelanggan && order.pelanggan.telepon) || (order && order.customer_phone) || '').replace(/\D/g, '');
   // Pesan galat sengaja sama untuk "tidak ada" dan "nomor tidak cocok".
   if (!order || phone.length < 4 || !phone.endsWith(phoneSuffix)) {
+    await recordTrackingFailure(db, attemptRef);
     throw new functions.https.HttpsError('not-found', 'Pesanan tidak ditemukan.');
   }
 

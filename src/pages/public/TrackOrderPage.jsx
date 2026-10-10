@@ -7,6 +7,7 @@ import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { EmptyState } from '../../components/common/EmptyState';
+import { SliderCaptchaModal } from '../../components/common/SliderCaptchaModal';
 import { ordersApi, settingsApi } from '../../lib/api';
 import { buildTrackingSteps, isFailedStatus } from '../../features/orders/tracking';
 import { cn } from '../../lib/utils';
@@ -116,26 +117,33 @@ export function TrackOrderPage() {
   const [searched, setSearched] = useState(false);
   const [tracking, setTracking] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [isCaptchaOpen, setIsCaptchaOpen] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
 
   useEffect(() => {
     settingsApi.getSettings().then(setSettings).catch(() => {});
   }, []);
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
     const nextErrors = {};
     if (!code.trim()) nextErrors.code = 'Masukkan kode pesanan Anda.';
     if (!/^\d{4}$/.test(phoneSuffix)) nextErrors.phone = 'Masukkan tepat 4 digit angka.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+    setIsCaptchaOpen(true);
+  };
 
+  const runLookup = async () => {
     setLoading(true);
+    setRateLimited(false);
     try {
       const result = await ordersApi.trackOrder(code, phoneSuffix);
       setTracking(result);
       setSearchParams({ kode: code.trim() }, { replace: true });
-    } catch {
+    } catch (e) {
       setTracking(null);
+      setRateLimited(e?.code === 'rate-limited');
     } finally {
       setSearched(true);
       setLoading(false);
@@ -191,7 +199,15 @@ export function TrackOrderPage() {
         </Card>
 
         <div aria-live="polite" className="flex flex-col gap-6">
-          {searched && !loading && !tracking && (
+          {searched && !loading && !tracking && rateLimited && (
+            <EmptyState
+              icon={PackageSearch}
+              title="Terlalu banyak percobaan"
+              description="Demi keamanan, pelacakan untuk kode ini dijeda sementara. Silakan coba lagi dalam 15 menit atau hubungi admin."
+            />
+          )}
+
+          {searched && !loading && !tracking && !rateLimited && (
             <EmptyState
               icon={PackageSearch}
               title="Pesanan tidak ditemukan"
@@ -298,6 +314,12 @@ export function TrackOrderPage() {
           )}
         </div>
       </div>
+
+      <SliderCaptchaModal
+        isOpen={isCaptchaOpen}
+        onClose={() => setIsCaptchaOpen(false)}
+        onSuccess={runLookup}
+      />
     </div>
   );
 }

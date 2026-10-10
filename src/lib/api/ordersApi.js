@@ -91,7 +91,12 @@ export const ordersApi = {
           new Promise((_, reject) => setTimeout(() => reject(new Error('Function timeout')), 4000))
         ]);
         if (result && result.data) return result.data;
-      } catch {
+      } catch (e) {
+        if (e?.code === 'functions/resource-exhausted') {
+          const limited = new Error('Terlalu banyak percobaan. Coba lagi dalam 15 menit.');
+          limited.code = 'rate-limited';
+          throw limited;
+        }
       }
     }
 
