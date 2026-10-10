@@ -1,0 +1,595 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { 
+  CheckCircle,
+  Sparkle,
+  Drop,
+  CaretLeft,
+  CaretRight
+} from '@phosphor-icons/react';
+import { Truck, Tag as LucideTag, ArrowRight } from 'lucide-react';
+import { Button } from '../../components/common/Button';
+import { ServiceCard } from '../../features/services/ServiceCard';
+import { getImageFramingStyle } from '../../lib/framing';
+import { TestimonialCard } from '../../features/testimonials/TestimonialCard';
+import { servicesApi, galleryApi, testimonialsApi, contentApi } from '../../lib/api';
+
+export function HomePage() {
+  const navigate = useNavigate();
+  const [content, setContent] = useState(null);
+  const [services, setServices] = useState([]);
+  const [gallery, setGallery] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [shoeSlotIndices, setShoeSlotIndices] = useState([0, 0, 0]);
+  const [currentTestiIndex, setCurrentTestiIndex] = useState(0);
+  const [isTestiPaused, setIsTestiPaused] = useState(false);
+  const [visibleTestiCards, setVisibleTestiCards] = useState(3);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) setVisibleTestiCards(1);
+      else if (window.innerWidth < 1024) setVisibleTestiCards(2);
+      else setVisibleTestiCards(3);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const maxTestiIndex = Math.max(0, testimonials.length - visibleTestiCards);
+
+  useEffect(() => {
+    if (testimonials.length <= visibleTestiCards || isTestiPaused) return;
+    const interval = setInterval(() => {
+      setCurrentTestiIndex((prev) => (prev >= maxTestiIndex ? 0 : prev + 1));
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [testimonials.length, visibleTestiCards, isTestiPaused, maxTestiIndex]);
+
+  const handlePrevTesti = () => {
+    setCurrentTestiIndex((prev) => (prev <= 0 ? maxTestiIndex : prev - 1));
+  };
+  const handleNextTesti = () => {
+    setCurrentTestiIndex((prev) => (prev >= maxTestiIndex ? 0 : prev + 1));
+  };
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [homeContent, servicesList, galleryList, testiList] = await Promise.all([
+          contentApi.getHomeContent(),
+          servicesApi.getServices(true),
+          galleryApi.getGallery(true),
+          testimonialsApi.getTestimonials(true)
+        ]);
+        setContent(homeContent);
+        setServices(servicesList);
+        setGallery(galleryList);
+        setTestimonials(testiList);
+      } catch (err) {
+      }
+    }
+
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (gallery.length === 0) return;
+    const interval = setInterval(() => {
+      setShoeSlotIndices((prev) => {
+        const displayed = gallery.slice(0, 3);
+        return displayed.map((shoe, idx) => {
+          const validSlots = (shoe.slots && shoe.slots.length > 0)
+            ? shoe.slots.filter((s) => s.before_url && s.after_url)
+            : [];
+          if (validSlots.length <= 1) return 0;
+          const current = prev[idx] || 0;
+          return (current + 1) % validSlots.length;
+        });
+      });
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [gallery]);
+
+  return (
+    <div className="flex flex-col min-h-screen bg-brand-light page-smooth-enter">
+      <section className="relative min-h-[100dvh] flex flex-col justify-center pt-14 pb-[76px] sm:pt-24 sm:pb-16 lg:pt-32 lg:pb-20 bg-[#072B4A] text-white overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/hero-bg.jpg"
+            alt="Lave Streat Sneaker Care Workshop"
+            className="w-full h-full object-cover object-center scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#072B4A]/95 via-[#0A3D66]/85 to-[#0A3D66]/75" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#072B4A] via-transparent to-[#0A3D66]/60" />
+        </div>
+
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-brand-600/30 blur-3xl pointer-events-none z-1" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-sky-400/20 blur-3xl pointer-events-none z-1" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-brand-200/5 blur-3xl pointer-events-none z-1" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-4 sm:py-0">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8 lg:gap-12 items-center">
+            <div className="lg:col-span-6 flex flex-col justify-between py-1">
+              <div className="flex flex-col items-start gap-2.5 sm:gap-5 lg:gap-6">
+                <h1 className="font-display font-extrabold text-2xl sm:text-4xl lg:text-5xl text-white leading-tight lg:leading-[1.12] tracking-tight">
+                  {content?.hero_title || 'Perawatan Sepatu Spesialis Sidoarjo & Surabaya'}
+                </h1>
+
+                <p className="text-xs sm:text-sm lg:text-base text-brand-100/90 max-w-lg leading-relaxed font-normal">
+                  {content?.hero_subtitle || 'Layanan cuci mendalam, pembersihan khusus material, dan unyellowing sepatu profesional dengan standar pengerjaan manual. Kurir kami menjemput dan mengantar langsung ke alamat Anda di wilayah Sidoarjo dan Surabaya.'}
+                </p>
+
+                <div className="flex flex-row items-center gap-2.5 sm:gap-3 pt-0.5 sm:pt-1 w-full sm:w-auto">
+                  <Button
+                    onClick={() => navigate('/pesan')}
+                    size="md"
+                    className="flex-1 sm:flex-none justify-center bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg hover:shadow-brand-600/40 flex items-center gap-2 py-2 sm:py-3 text-xs sm:text-sm"
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Pesan Sekarang</span>
+                  </Button>
+
+                  <Link to="/layanan" className="flex-1 sm:flex-none">
+                    <Button variant="glass" size="md" className="w-full justify-center flex items-center gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+                      <LucideTag className="w-4 h-4 text-brand-200" />
+                      <span>Tarif Layanan</span>
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="hidden lg:flex pt-8 mt-8 border-t border-white/15 flex-wrap items-center gap-6 text-xs text-brand-100">
+                <div className="flex items-center gap-2 font-medium">
+                  <CheckCircle size={16} weight="fill" className="text-accent-gold shrink-0" />
+                  <span>Antar-Jemput Gratis Sidoarjo & Surabaya</span>
+                </div>
+                <div className="flex items-center gap-2 font-medium">
+                  <CheckCircle size={16} weight="fill" className="text-accent-gold shrink-0" />
+                  <span>Estimasi 1-4 Hari</span>
+                </div>
+                <div className="flex items-center gap-2 font-medium">
+                  <CheckCircle size={16} weight="fill" className="text-accent-gold shrink-0" />
+                  <span>Dokumentasi Before-After</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-6 flex flex-col justify-center">
+              <div className="relative rounded-2xl sm:rounded-3xl border border-white/20 sm:border-2 shadow-2xl overflow-hidden bg-brand-900 group aspect-[16/10] lg:aspect-[4/3] w-full max-w-sm sm:max-w-lg mx-auto lg:max-w-none animate-float-smooth">
+                <img
+                  src="/hero-sneaker.jpg"
+                  alt="Lave Streat Perawatan Sepatu Spesialis"
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                />
+
+                <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-brand-900/85 backdrop-blur-md border border-white/20 text-white px-2 py-1 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg flex items-center gap-1 sm:gap-2 text-[9px] sm:text-xs font-semibold">
+                  <CheckCircle size={12} weight="fill" className="text-accent-gold" />
+                  <span>100% Detailing Manual</span>
+                </div>
+
+                <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 bg-white/95 backdrop-blur-md border border-brand-100 text-brand-900 px-2 py-1 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl shadow-xl flex items-center gap-1.5 sm:gap-3">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-brand-600 text-white flex items-center justify-center shrink-0">
+                    <Truck className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] sm:text-xs font-bold leading-tight">Layanan Antar-Jemput</span>
+                    <span className="text-[8px] sm:text-[11px] text-slate-wet leading-none">Area Sidoarjo & Surabaya</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1 pt-2 mt-2 border-t border-white/15 text-[10px] text-brand-100 lg:hidden text-center">
+                <div className="flex items-center justify-center gap-1 font-medium">
+                  <CheckCircle size={13} weight="fill" className="text-accent-gold shrink-0" />
+                  <span className="leading-tight">Antar-Jemput</span>
+                </div>
+                <div className="flex items-center justify-center gap-1 font-medium">
+                  <CheckCircle size={13} weight="fill" className="text-accent-gold shrink-0" />
+                  <span className="leading-tight">Estimasi 1-4 Hari</span>
+                </div>
+                <div className="flex items-center justify-center gap-1 font-medium">
+                  <CheckCircle size={13} weight="fill" className="text-accent-gold shrink-0" />
+                  <span className="leading-tight">Before-After</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 sm:py-20 bg-white border-b border-brand-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 sm:mb-10">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block mb-1">
+                Katalog Pilihan
+              </span>
+              <h2 className="font-display font-bold text-2xl sm:text-3xl text-brand-900 tracking-tight">
+                Pilihan Perawatan & Tarif Resmi
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-wet mt-1">
+                Pencucian mendalam, pemutihan sol, dan restorasi warna menggunakan formula khusus ramah material sepatu.
+              </p>
+            </div>
+            <Link
+              to="/layanan"
+              className="hidden md:inline-flex items-center text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-900 transition-colors"
+            >
+              Lihat Semua Layanan &rarr;
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+            {services.slice(0, 6).map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                onSelect={() => navigate(`/pesan?service=${service.id}`)}
+              />
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center md:hidden">
+            <Link
+              to="/layanan"
+              className="inline-flex items-center text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-900 transition-colors"
+            >
+              Lihat Semua Layanan &rarr;
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {gallery.length > 0 && (
+        <section className="py-16 sm:py-20 bg-sand-100/50 border-b border-brand-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block mb-1">
+                  Bukti Pengerjaan
+                </span>
+                <h2 className="font-display font-bold text-2xl sm:text-3xl text-brand-900 tracking-tight">
+                  Dokumentasi Restorasi Workshop
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-wet mt-1">
+                  Hasil nyata pengerjaan teknisi workshop kami. Lihat dokumentasi lengkap sebelum dan sesudah perawatan.
+                </p>
+              </div>
+              <Link to="/galeri" className="hidden md:inline-flex shrink-0">
+                <Button
+                  variant="outline"
+                  size="md"
+                  className="flex items-center gap-2 border-brand-300 text-brand-900 hover:bg-brand-50 shadow-2xs font-semibold"
+                >
+                  <span>Buka Halaman Galeri</span>
+                  <ArrowRight className="w-4 h-4 text-brand-600" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className={`grid gap-6 items-stretch ${
+              gallery.length === 1
+                ? 'grid-cols-1 max-w-md mx-auto'
+                : gallery.length === 2
+                  ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'
+                  : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+            }`}>
+              {gallery.slice(0, 3).map((item, idx) => {
+                const validSlots = (item.slots && item.slots.length > 0)
+                  ? item.slots.filter((s) => s.before_url && s.after_url)
+                  : [];
+                const slotIdx = validSlots.length > 0
+                  ? (shoeSlotIndices[idx] || 0) % validSlots.length
+                  : 0;
+                const activeSlot = validSlots.length > 0 ? validSlots[slotIdx] : null;
+
+                const bUrl = activeSlot?.before_url || item.before_url;
+                const aUrl = activeSlot?.after_url || item.after_url;
+                const targetObj = activeSlot ? { ...item, ...activeSlot } : item;
+                const bStyle = getImageFramingStyle(targetObj, 'before');
+                const aStyle = getImageFramingStyle(targetObj, 'after');
+
+                return (
+                  <Link
+                    key={item.id}
+                    to={`/galeri/${item.id}`}
+                    className="group relative bg-white rounded-xl border border-brand-200/90 overflow-hidden shadow-subtle hover:shadow-lg hover:border-brand-300 transition-all duration-300 flex flex-col"
+                  >
+                    <div className="relative w-full aspect-[4/3] min-h-[190px] overflow-hidden bg-slate-900">
+                      <div className="absolute inset-0 grid grid-cols-2">
+                        <div className="relative overflow-hidden border-r-2 border-white">
+                          <img
+                            src={bUrl}
+                            alt={`${item.caption} sebelum`}
+                            loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            style={bStyle}
+                          />
+                          <div className="absolute top-2.5 left-2.5 z-10 flex items-center bg-slate-950/75 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md border border-white/20 uppercase tracking-wider shadow-sm pointer-events-none">
+                            <span>Sebelum</span>
+                          </div>
+                        </div>
+
+                        <div className="relative overflow-hidden">
+                          <img
+                            src={aUrl}
+                            alt={`${item.caption} sesudah`}
+                            loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            style={aStyle}
+                          />
+                          <div className="absolute top-2.5 right-2.5 z-10 flex items-center bg-brand-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md border border-white/20 uppercase tracking-wider shadow-sm pointer-events-none">
+                            <span>Sesudah</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 flex flex-col justify-between grow bg-white">
+                      <div>
+                        <h3 className="text-sm font-bold text-brand-900 leading-snug truncate group-hover:text-brand-600 transition-colors">
+                          {item.caption}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-semibold text-brand-600 truncate">
+                            {item.layanan_terkait}
+                          </span>
+                          {item.shoe_brand && (
+                            <span className="text-[11px] text-slate-500 font-medium truncate">
+                              • {item.shoe_brand}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 mt-3 border-t border-brand-200/50 flex items-center justify-between text-xs text-slate-wet">
+                        <span>Workshop Lave Streat</span>
+                        <span className="text-[11px] font-semibold text-brand-600 group-hover:translate-x-0.5 transition-transform">
+                          Lihat Detail &rarr;
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="mt-8 flex justify-center md:hidden">
+              <Link to="/galeri">
+                <Button
+                  variant="outline"
+                  size="md"
+                  className="flex items-center gap-2 border-brand-300 text-brand-900 hover:bg-brand-50 shadow-2xs font-semibold"
+                >
+                  <span>Buka Halaman Galeri</span>
+                  <ArrowRight className="w-4 h-4 text-brand-600" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="py-16 sm:py-24 bg-white border-b border-brand-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-xs font-bold uppercase tracking-widest text-brand-600 block mb-2">
+              WHY CHOOSE US
+            </span>
+            <h2 className="font-display font-bold text-2xl sm:text-3xl lg:text-4xl text-brand-900 tracking-tight">
+              Standar Layanan yang Membedakan Kami
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-wet mt-3 max-w-2xl mx-auto leading-relaxed">
+              Dedikasi pengerjaan manual profesional, formula ramah material, dan fasilitas antar-jemput di area Sidoarjo dan Surabaya.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-6xl mx-auto">
+            
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="bg-brand-light/40 rounded-2xl border border-brand-200/80 p-6 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-11 h-11 rounded-xl bg-brand-900 text-white flex items-center justify-center mb-4 shadow-sm">
+                  <Sparkle size={22} weight="fill" className="text-brand-200" />
+                </div>
+                <h3 className="font-display font-bold text-base sm:text-lg text-brand-900 mb-2 leading-snug">
+                  100% Pengerjaan Manual
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-wet leading-relaxed">
+                  Pembersihan teliti bagian demi bagian tanpa mesin cuci otomatis yang berisiko merusak lem, jahitan, dan serat sepatu.
+                </p>
+              </div>
+
+              <div className="bg-brand-light/40 rounded-2xl border border-brand-200/80 p-6 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-11 h-11 rounded-xl bg-brand-900 text-white flex items-center justify-center mb-4 shadow-sm">
+                  <Drop size={22} weight="fill" className="text-brand-200" />
+                </div>
+                <h3 className="font-display font-bold text-base sm:text-lg text-brand-900 mb-2 leading-snug">
+                  Bahan Disesuaikan Material
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-wet leading-relaxed">
+                  Pembersih dan kondisioner disesuaikan material sepatu, seperti leather lotion khusus kulit dan suede lotion khusus suede agar tekstur tetap lembut dan awet.
+                </p>
+              </div>
+            </div>
+
+            <div className="lg:col-span-4 flex justify-center order-first lg:order-none mb-4 lg:mb-0">
+              <div className="relative w-full max-w-xs sm:max-w-sm aspect-[3/4] min-h-[300px] rounded-3xl overflow-hidden border-2 border-brand-200 shadow-xl bg-brand-100 group">
+                <img
+                  src="/specialist.jpg"
+                  alt="Teknisi Perawatan Sepatu Lave Streat"
+                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-900/85 via-transparent to-transparent" />
+                <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="bg-white/95 backdrop-blur-md rounded-xl p-2 sm:p-2.5 border border-brand-200/90 shadow-md text-center flex flex-col justify-center">
+                    <span className="font-display font-extrabold text-sm sm:text-base text-brand-900 leading-none">
+                      23
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-brand-600 uppercase tracking-tight mt-1">
+                      Pesanan Terlayani
+                    </span>
+                  </div>
+
+                  <div className="bg-white/95 backdrop-blur-md rounded-xl p-2 sm:p-2.5 border border-brand-200/90 shadow-md text-center flex flex-col justify-center">
+                    <span className="font-display font-extrabold text-sm sm:text-base text-brand-900 leading-none">
+                      5
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-brand-600 uppercase tracking-tight mt-1">
+                      Jenis Treatment
+                    </span>
+                  </div>
+
+                  <div className="bg-white/95 backdrop-blur-md rounded-xl p-2 sm:p-2.5 border border-brand-200/90 shadow-md text-center flex flex-col justify-center">
+                    <span className="font-display font-extrabold text-sm sm:text-base text-brand-900 leading-none">
+                      3
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-brand-600 uppercase tracking-tight mt-1">
+                      Anggota Tim
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="bg-brand-light/40 rounded-2xl border border-brand-200/80 p-6 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-11 h-11 rounded-xl bg-brand-900 text-white flex items-center justify-center mb-4 shadow-sm">
+                  <Truck className="w-5 h-5 text-brand-200" />
+                </div>
+                <h3 className="font-display font-bold text-base sm:text-lg text-brand-900 mb-2 leading-snug">
+                  Antar-Jemput Praktis
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-wet leading-relaxed">
+                  Kurir Lave Streat siap mengambil sepatu kotor dan mengantarkannya kembali ke rumah atau kantor area Sidoarjo dan Surabaya.
+                </p>
+              </div>
+
+              <div className="bg-brand-light/40 rounded-2xl border border-brand-200/80 p-6 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-11 h-11 rounded-xl bg-brand-900 text-white flex items-center justify-center mb-4 shadow-sm">
+                  <CheckCircle size={22} weight="fill" className="text-brand-200" />
+                </div>
+                <h3 className="font-display font-bold text-base sm:text-lg text-brand-900 mb-2 leading-snug">
+                  Dokumentasi Before-After
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-wet leading-relaxed">
+                  Transparansi pengerjaan melalui dokumentasi foto kondisi sepatu sebelum dan sesudah perawatan demi menjaga kepercayaan pelanggan.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {testimonials.length > 0 && (
+        <section className="py-16 sm:py-20 bg-brand-light border-b border-brand-200 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+              <div className="max-w-2xl">
+                <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 block mb-1">
+                  Ulasan Nyata
+                </span>
+                <h2 className="font-display font-bold text-2xl sm:text-3xl text-brand-900 tracking-tight">
+                  Pengalaman Pelanggan Kami
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-wet mt-1">
+                  Catatan ulasan dari pelanggan yang mempercayakan perawatan sepatunya pada workshop Lave Streat.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {testimonials.length > visibleTestiCards && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handlePrevTesti}
+                      aria-label="Ulasan sebelumnya"
+                      className="w-9 h-9 rounded-full bg-white border border-brand-200 text-brand-900 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-colors flex items-center justify-center shadow-2xs"
+                    >
+                      <CaretLeft size={18} weight="bold" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextTesti}
+                      aria-label="Ulasan selanjutnya"
+                      className="w-9 h-9 rounded-full bg-white border border-brand-200 text-brand-900 hover:bg-brand-600 hover:text-white hover:border-brand-600 transition-colors flex items-center justify-center shadow-2xs"
+                    >
+                      <CaretRight size={18} weight="bold" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div 
+              className="relative overflow-hidden -mx-3 px-3 py-2"
+              onMouseEnter={() => setIsTestiPaused(true)}
+              onMouseLeave={() => setIsTestiPaused(false)}
+              onTouchStart={() => setIsTestiPaused(true)}
+              onTouchEnd={() => setIsTestiPaused(false)}
+            >
+              <div 
+                className="flex transition-transform duration-700 ease-in-out"
+                style={{
+                  transform: `translateX(-${currentTestiIndex * (100 / visibleTestiCards)}%)`
+                }}
+              >
+                {testimonials.map((testi) => (
+                  <div 
+                    key={testi.id}
+                    className="shrink-0 px-3 flex flex-col"
+                    style={{ width: `${100 / visibleTestiCards}%` }}
+                  >
+                    <TestimonialCard testimonial={testi} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {testimonials.length > visibleTestiCards && (
+              <div className="flex items-center justify-center gap-1.5 mt-8">
+                {Array.from({ length: maxTestiIndex + 1 }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentTestiIndex(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      currentTestiIndex === idx 
+                        ? 'w-6 bg-brand-600' 
+                        : 'w-2 bg-brand-200 hover:bg-brand-300'
+                    }`}
+                    aria-label={`Ke slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section className="py-14 sm:py-16 bg-brand-900 text-snow-foam">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="max-w-xl text-left">
+            <h2 className="font-display font-bold text-2xl sm:text-3xl text-white tracking-tight leading-snug">
+              Sepatu kotor atau butuh perawatan berkala?
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 mt-1.5 leading-relaxed">
+              Jadwalkan penjemputan sekarang. Tim kurir kami siap menjemput dan merawat sepatu Anda di area Sidoarjo dan Surabaya.
+            </p>
+          </div>
+          <div className="shrink-0 flex items-center gap-3">
+            <Button
+              onClick={() => navigate('/pesan')}
+              size="lg"
+              className="shadow-md flex items-center gap-2"
+            >
+              <Truck className="w-4 h-4" />
+              <span>Pesan Sekarang</span>
+            </Button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

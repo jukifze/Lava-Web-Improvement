@@ -1,0 +1,82 @@
+import React, { useState } from "react";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
+import { AdminSidebar } from "../../components/layout/AdminSidebar";
+import { AdminTopbar } from "../../components/layout/AdminTopbar";
+import { AdminBottomNav } from "../../components/layout/AdminBottomNav";
+import { useAuth } from "../../context/AuthContext";
+
+export function AdminLayout() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : true,
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-brand-light flex items-center justify-center text-brand-900 font-semibold text-base">
+        Memverifikasi sesi admin...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/admin/login" replace state={{ from: location }} />;
+  }
+
+  const getPageTitle = (pathname) => {
+    if (pathname === "/admin") return "Dashboard Ringkasan";
+    if (pathname.startsWith("/admin/orders/")) return "Detail Pesanan";
+    if (pathname === "/admin/orders") return "Kelola Pesanan";
+    if (pathname === "/admin/services/new") return "Tambah Layanan Baru";
+    if (pathname.includes("/admin/services/") && pathname.endsWith("/edit"))
+      return "Edit Layanan";
+    if (pathname === "/admin/services") return "Kelola Layanan & Produk";
+    if (pathname === "/admin/gallery/new") return "Tambah Before-After";
+    if (pathname.includes("/admin/gallery/") && pathname.endsWith("/edit"))
+      return "Edit Before-After";
+    if (pathname === "/admin/gallery") return "Kelola Galeri Before-After";
+    if (pathname === "/admin/testimonials/new") return "Tambah Testimoni";
+    if (pathname.includes("/admin/testimonials/") && pathname.endsWith("/edit"))
+      return "Edit Testimoni";
+    if (pathname === "/admin/testimonials") return "Kelola Testimoni";
+    if (pathname === "/admin/content") return "Kelola Konten Landing Page";
+    if (pathname === "/admin/settings") return "Pengaturan Outlet";
+    return "Panel Admin";
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FBFE] flex">
+      <AdminSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <div
+        className={`flex flex-col grow w-full transition-all duration-300 ease-in-out ${sidebarOpen ? "lg:pl-64" : "lg:pl-0"}`}
+      >
+        <AdminTopbar
+          title={getPageTitle(location.pathname)}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          isSidebarOpen={sidebarOpen}
+        />
+
+        <main className="grow px-3 sm:px-5 lg:px-6 py-4 sm:py-5 pb-24 sm:pb-8 overflow-x-auto w-full">
+          <div className="w-full">
+            <React.Suspense
+              fallback={
+                <div className="min-h-[40vh] flex items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+                </div>
+              }
+            >
+              <Outlet />
+            </React.Suspense>
+          </div>
+        </main>
+
+        <AdminBottomNav />
+      </div>
+    </div>
+  );
+}
