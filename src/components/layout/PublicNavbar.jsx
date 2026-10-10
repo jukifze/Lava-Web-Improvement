@@ -26,6 +26,7 @@ export function PublicNavbar() {
     { label: 'Tentang Kami', path: '/tentang-kami' },
     { label: 'Layanan', path: '/layanan' },
     { label: 'Galeri', path: '/galeri' },
+    { label: 'Lacak Pesanan', path: '/lacak' },
     { label: 'Kontak', path: '/kontak' }
   ];
 

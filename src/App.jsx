@@ -38,6 +38,11 @@ const ContactPage = lazy(() =>
 const OrderPage = lazy(() =>
   import("./pages/public/OrderPage").then((m) => ({ default: m.OrderPage }))
 );
+const TrackOrderPage = lazy(() =>
+  import("./pages/public/TrackOrderPage").then((m) => ({
+    default: m.TrackOrderPage,
+  }))
+);
 
 const LoginPage = lazy(() =>
   import("./pages/admin/LoginPage").then((m) => ({ default: m.LoginPage }))
@@ -187,6 +192,7 @@ export default function App() {
                 <Route path="/galeri/:id" element={<GalleryDetailPage />} />
                 <Route path="/kontak" element={<ContactPage />} />
                 <Route path="/pesan" element={<OrderPage />} />
+                <Route path="/lacak" element={<TrackOrderPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
 

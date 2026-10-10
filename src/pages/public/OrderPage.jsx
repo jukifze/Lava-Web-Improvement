@@ -390,6 +390,12 @@ Mohon konfirmasi dan informasi tindak lanjut penjemputan/pengerjaan sepatu saya.
                 Buat Pesanan Baru
               </Button>
 
+              <Link to={`/lacak?kode=${encodeURIComponent(createdOrder.id)}`} className="w-full sm:w-auto">
+                <Button variant="outline" size="md" className="rounded-md w-full">
+                  Lacak Pesanan
+                </Button>
+              </Link>
+
               <Link to="/" className="w-full sm:w-auto">
                 <Button variant="ghost" size="md" className="rounded-md w-full">
                   Kembali ke Beranda

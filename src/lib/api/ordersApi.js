@@ -13,6 +13,12 @@ import { db, functions, isFirebaseConfigured } from '../firebase';
 import { initialOrders } from './mockData';
 import { servicesApi } from './servicesApi';
 import { STATUS_TRANSITIONS } from '../constants';
+import {
+  isValidPhoneSuffix,
+  orderMatchesCode,
+  orderMatchesPhone,
+  toPublicTracking
+} from '../../features/orders/tracking';
 
 const STORAGE_KEY = 'lavestreat_orders_data_v16';
 
@@ -69,6 +75,30 @@ export const ordersApi = {
 
     const orders = getLocalOrders();
     return orders.find(o => o.id === id || o.order_id === id || o.invoice === id || o.invoice_number === id || o.original_id === id) || null;
+  },
+
+  // Pelacakan publik: kode pesanan + 4 digit terakhir nomor WhatsApp.
+  // Mengembalikan data yang sudah disaring, atau null bila tidak cocok.
+  async trackOrder(code, phoneSuffix) {
+    const cleanCode = String(code || '').trim();
+    if (!cleanCode || !isValidPhoneSuffix(phoneSuffix)) return null;
+
+    if (isFirebaseConfigured && import.meta.env.VITE_USE_CLOUD_FUNCTIONS === 'true') {
+      try {
+        const trackFn = httpsCallable(functions, 'trackOrder');
+        const result = await Promise.race([
+          trackFn({ code: cleanCode, phoneSuffix }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Function timeout')), 4000))
+        ]);
+        if (result && result.data) return result.data;
+      } catch {
+      }
+    }
+
+    const match = getLocalOrders().find(
+      (o) => orderMatchesCode(o, cleanCode) && orderMatchesPhone(o, phoneSuffix)
+    );
+    return match ? toPublicTracking(match) : null;
   },
 
   async createOrder(payload) {

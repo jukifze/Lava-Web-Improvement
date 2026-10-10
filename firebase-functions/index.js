@@ -144,3 +144,66 @@ exports.updateOrderStatus = functions.https.onCall(async (data, context) => {
 
   return { success: true, status: newStatus };
 });
+
+// Pelacakan pesanan publik. Koleksi `orders` tidak bisa dibaca publik lewat
+// Firestore Rules, jadi pelanggan melacak lewat fungsi ini: kode pesanan
+// harus cocok dengan 4 digit terakhir nomor WhatsApp, dan hanya field yang
+// aman yang dikembalikan (tanpa telepon, email, alamat, catatan admin).
+function toPublicTracking(order) {
+  const fullName = (order.pelanggan && order.pelanggan.nama) || order.customer_name || '';
+  const toIso = (value) => (value && typeof value.toDate === 'function' ? value.toDate().toISOString() : value || null);
+  return {
+    kode: order.invoice_number || order.invoice || order.id,
+    nama_depan: fullName.trim().split(/\s+/)[0] || '',
+    status: order.status,
+    metode: order.metode || null,
+    jadwal_tanggal: order.jadwal_tanggal || null,
+    total_harga: order.total_harga == null ? null : order.total_harga,
+    created_at: toIso(order.created_at),
+    updated_at: toIso(order.updated_at),
+    status_history: (order.status_history || []).map((entry) => ({
+      status: entry.status,
+      timestamp: entry.timestamp
+    })),
+    items: (order.items || []).map((item) => ({
+      nama: item.nama_snapshot || item.nama || '',
+      layanan: item.service_nama || item.nama_layanan || '',
+      qty: item.qty || 1,
+      foto_before: (item.gallery || []).filter((g) => g.kind === 'before').map((g) => g.url),
+      foto_after: (item.gallery || []).filter((g) => g.kind === 'after').map((g) => g.url)
+    }))
+  };
+}
+
+exports.trackOrder = functions.https.onCall(async (data) => {
+  const code = String((data && data.code) || '').trim();
+  const phoneSuffix = String((data && data.phoneSuffix) || '');
+  if (!code || code.length > 64 || !/^\d{4}$/.test(phoneSuffix)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Kode pesanan atau nomor tidak valid.');
+  }
+
+  const db = admin.firestore();
+  const orders = db.collection('orders');
+  let order = null;
+
+  const direct = await orders.doc(code).get();
+  if (direct.exists) {
+    order = direct.data();
+  } else {
+    for (const field of ['id', 'invoice_number']) {
+      const snap = await orders.where(field, '==', code).limit(1).get();
+      if (!snap.empty) {
+        order = snap.docs[0].data();
+        break;
+      }
+    }
+  }
+
+  const phone = String((order && order.pelanggan && order.pelanggan.telepon) || (order && order.customer_phone) || '').replace(/\D/g, '');
+  // Pesan galat sengaja sama untuk "tidak ada" dan "nomor tidak cocok".
+  if (!order || phone.length < 4 || !phone.endsWith(phoneSuffix)) {
+    throw new functions.https.HttpsError('not-found', 'Pesanan tidak ditemukan.');
+  }
+
+  return toPublicTracking(order);
+});
